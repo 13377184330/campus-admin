@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.stu.mapper.StuScoreLogMapper">
+
+    <resultMap type="StuScoreLog" id="StuScoreLogResult">
+        <result property="logId"       column="log_id"       />
+        <result property="studentId"   column="student_id"   />
+        <result property="studentName" column="student_name" />
+        <result property="studentNo"   column="student_no"   />
+        <result property="changeScore" column="change_score" />
+        <result property="scoreAfter"  column="score_after"  />
+        <result property="reason"      column="reason"       />
+        <result property="remark"      column="remark"       />
+        <result property="createBy"    column="create_by"    />
+        <result property="createByName" column="create_by_name" />
+        <result property="createTime"  column="create_time"  />
+    </resultMap>
+
+    <sql id="selectStuScoreLogVo">
+        select l.log_id, l.student_id, l.change_score, l.score_after, l.reason, l.remark, l.create_by, l.create_time,
+               u.nick_name as create_by_name,
+               s.name as student_name, s.student_no
+        from stu_score_log l
+        left join stu_student s on s.student_id = l.student_id
+        left join sys_user u on u.user_name = l.create_by
+    </sql>
+
+    <select id="selectStuScoreLogList" parameterType="StuScoreLog" resultMap="StuScoreLogResult">
+        <include refid="selectStuScoreLogVo"/>
+        <where>
+            <if test="studentId != null"> and l.student_id = #{studentId}</if>
+            <if test="reason != null and reason != ''"> and l.reason like concat('%', #{reason}, '%')</if>
+            <if test="createBy != null and createBy != ''"> and l.create_by like concat('%', #{createBy}, '%')</if>
+            <if test="params.studentName != null and params.studentName != ''"> and s.name like concat('%', #{params.studentName}, '%')</if>
+            <if test="params.changeType != null and params.changeType == 'add'"> and l.change_score &gt; 0</if>
+            <if test="params.changeType != null and params.changeType == 'sub'"> and l.change_score &lt; 0</if>
+            <if test="params.beginTime != null and params.beginTime != ''"> and date_format(l.create_time,'%Y-%m-%d') &gt;= #{params.beginTime}</if>
+            <if test="params.endTime != null and params.endTime != ''"> and date_format(l.create_time,'%Y-%m-%d') &lt;= #{params.endTime}</if>
+        </where>
+        order by l.log_id desc
+    </select>
+
+    <select id="selectRecentScoreLogs" resultType="java.util.HashMap">
+        select l.log_id as logId, l.student_id as studentId, s.name as studentName, s.student_no as studentNo,
+               l.change_score as changeScore, l.score_after as scoreAfter, l.reason as reason,
+               l.create_by as createBy, u.nick_name as createByName, l.create_time as createTime
+        from stu_score_log l
+        left join stu_student s on s.student_id = l.student_id
+        left join sys_user u on u.user_name = l.create_by
+        order by l.log_id desc
+        limit #{limit}
+    </select>
+
+    <insert id="insertStuScoreLog" parameterType="StuScoreLog" useGeneratedKeys="true" keyProperty="logId">
+        insert into stu_score_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="studentId != null">student_id,</if>
+            <if test="changeScore != null">change_score,</if>
+            <if test="scoreAfter != null">score_after,</if>
+            <if test="reason != null">reason,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="studentId != null">#{studentId},</if>
+            <if test="changeScore != null">#{changeScore},</if>
+            <if test="scoreAfter != null">#{scoreAfter},</if>
+            <if test="reason != null">#{reason},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <delete id="deleteStuScoreLogById" parameterType="Long">
+        delete from stu_score_log where log_id = #{logId}
+    </delete>
+
+    <delete id="deleteStuScoreLogByIds" parameterType="String">
+        delete from stu_score_log where log_id in
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteStuScoreLogByStudentIds" parameterType="String">
+        delete from stu_score_log where student_id in
+        <foreach item="studentId" collection="array" open="(" separator="," close=")">
+            #{studentId}
+        </foreach>
+    </delete>
+
+</mapper>

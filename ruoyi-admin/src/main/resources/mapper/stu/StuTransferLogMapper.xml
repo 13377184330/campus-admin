@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.stu.mapper.StuTransferLogMapper">
+
+    <resultMap type="StuTransferLog" id="StuTransferLogResult">
+        <result property="transferId"    column="transfer_id"     />
+        <result property="studentId"     column="student_id"      />
+        <result property="studentName"   column="student_name"    />
+        <result property="studentNo"     column="student_no"      />
+        <result property="fromClassId"   column="from_class_id"   />
+        <result property="fromClassName" column="from_class_name" />
+        <result property="toClassId"     column="to_class_id"     />
+        <result property="toClassName"   column="to_class_name"   />
+        <result property="reason"        column="reason"          />
+        <result property="createBy"      column="create_by"       />
+        <result property="createByName"  column="create_by_name"  />
+        <result property="createTime"    column="create_time"     />
+    </resultMap>
+
+    <sql id="selectStuTransferLogVo">
+        select t.transfer_id, t.student_id, t.from_class_id, t.to_class_id, t.reason, t.create_by, t.create_time,
+               u.nick_name as create_by_name,
+               s.name as student_name, s.student_no,
+               c1.class_name as from_class_name, c2.class_name as to_class_name
+        from stu_transfer_log t
+        left join stu_student s on s.student_id = t.student_id
+        left join stu_class c1 on c1.class_id = t.from_class_id
+        left join stu_class c2 on c2.class_id = t.to_class_id
+        left join sys_user u on u.user_name = t.create_by
+    </sql>
+
+    <select id="selectStuTransferLogList" parameterType="StuTransferLog" resultMap="StuTransferLogResult">
+        <include refid="selectStuTransferLogVo"/>
+        <where>
+            <if test="studentId != null"> and t.student_id = #{studentId}</if>
+            <if test="fromClassId != null"> and t.from_class_id = #{fromClassId}</if>
+            <if test="toClassId != null"> and t.to_class_id = #{toClassId}</if>
+            <if test="reason != null and reason != ''"> and t.reason like concat('%', #{reason}, '%')</if>
+            <if test="params.studentName != null and params.studentName != ''"> and s.name like concat('%', #{params.studentName}, '%')</if>
+            <if test="params.beginTime != null and params.beginTime != ''"> and date_format(t.create_time,'%Y-%m-%d') &gt;= #{params.beginTime}</if>
+            <if test="params.endTime != null and params.endTime != ''"> and date_format(t.create_time,'%Y-%m-%d') &lt;= #{params.endTime}</if>
+        </where>
+        order by t.transfer_id desc
+    </select>
+
+    <select id="selectRecentTransfers" resultType="java.util.HashMap">
+        select t.transfer_id as transferId, t.student_id as studentId, s.name as studentName, s.student_no as studentNo,
+               c1.class_name as fromClassName, c2.class_name as toClassName, t.reason as reason,
+               t.create_by as createBy, u.nick_name as createByName, t.create_time as createTime
+        from stu_transfer_log t
+        left join stu_student s on s.student_id = t.student_id
+        left join stu_class c1 on c1.class_id = t.from_class_id
+        left join stu_class c2 on c2.class_id = t.to_class_id
+        left join sys_user u on u.user_name = t.create_by
+        order by t.transfer_id desc
+        limit #{limit}
+    </select>
+
+    <insert id="insertStuTransferLog" parameterType="StuTransferLog" useGeneratedKeys="true" keyProperty="transferId">
+        insert into stu_transfer_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="studentId != null">student_id,</if>
+            <if test="fromClassId != null">from_class_id,</if>
+            <if test="toClassId != null">to_class_id,</if>
+            <if test="reason != null">reason,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="studentId != null">#{studentId},</if>
+            <if test="fromClassId != null">#{fromClassId},</if>
+            <if test="toClassId != null">#{toClassId},</if>
+            <if test="reason != null">#{reason},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <delete id="deleteStuTransferLogById" parameterType="Long">
+        delete from stu_transfer_log where transfer_id = #{transferId}
+    </delete>
+
+    <delete id="deleteStuTransferLogByIds" parameterType="String">
+        delete from stu_transfer_log where transfer_id in
+        <foreach item="transferId" collection="array" open="(" separator="," close=")">
+            #{transferId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteStuTransferLogByStudentIds" parameterType="String">
+        delete from stu_transfer_log where student_id in
+        <foreach item="studentId" collection="array" open="(" separator="," close=")">
+            #{studentId}
+        </foreach>
+    </delete>
+
+</mapper>
